@@ -38,6 +38,13 @@ const mainItem =[first,sec,third];
 /*
 
 */
+const listschema={
+  name : String,
+  items : [itemschema]
+};
+
+const List = mongoose.model("List",listschema);
+
 app.get("/", function(req, res) {
 
 //const day = date.getDate();
@@ -61,6 +68,16 @@ app.get("/", function(req, res) {
   
 
 });
+app.post("/delete",function(req,res){
+  const itemID=req.body.checkbox;
+  Item.findByIdAndRemove(itemID,function(err){
+    if(err){
+      console.log(err);
+    }else{
+      console.log("succ");
+    }
+  })
+});
 
 app.post("/", function(req, res){
 
@@ -78,10 +95,43 @@ app.post("/", function(req, res){
     name : newItem
   });
   item.save();
+  res.render("/");
 });
 
-app.get("/work", function(req,res){
-  res.render("list", {listTitle: "Work List", newListItems: workItems});
+app.get("/:Others",function(req,res){
+  const listItem=req.params.Others;
+  var f=false;
+  /*
+  List.find({},function(err,result){
+    result.forEach(function(res) {
+      if(listItem===res.name){
+        //console.log("doesn't exist");
+        f=true;
+      }
+    });
+    if(f){
+      console.log("exsist");
+    }else{
+      console.log("doesn't exsist");
+    }
+    
+  })*/
+  List.findOne({name : listItem},function(err,foundList){
+    if(!err){
+      if(!foundList){
+        const list =new List({
+          name : listItem,
+          items : mainItem
+        });
+        list.save();
+        res.redirect("/"+listItem);
+      }else{
+        //console.log("exist");
+        res.render("list",{listTitle:listItem, newListItems:foundList.items})
+      }
+    }
+  })
+  
 });
 
 app.get("/about", function(req, res){
