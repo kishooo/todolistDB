@@ -4,6 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 //const date = require(__dirname + "/date.js");
 const mongoose = require("mongoose");
+const _ = require("lodash")
 
 const app = express();
 
@@ -49,7 +50,7 @@ app.get("/", function(req, res) {
 
 //const day = date.getDate();
   Item.find({},function(err,result){
-    //console.log(result);  
+    //console.log(result);
     if(result.length===0){
       Item.insertMany(mainItem,function(err){
         if(err){
@@ -69,14 +70,23 @@ app.get("/", function(req, res) {
 
 });
 app.post("/delete",function(req,res){
-  const itemID=req.body.checkbox;
-  Item.findByIdAndRemove(itemID,function(err){
-    if(err){
-      console.log(err);
-    }else{
-      console.log("succ");
-    }
-  })
+  const itemID = req.body.checkbox;
+  const listName = req.body.listName;
+  if (listName === "Today"){
+    Item.findByIdAndRemove(itemID,function(err){
+      if(!err){
+        console.log("succ");
+        res.redirect("/");
+      }
+    });   
+  }else{
+    List.findOneAndUpdate({name : listName},{$pull : {items : {_id : itemID}}},function(err,foundList){
+        if(!err){
+          console.log("succ2");
+          res.redirect("/" + listName);
+        }
+      });
+  }
 });
 
 app.post("/", function(req, res){
@@ -91,15 +101,24 @@ app.post("/", function(req, res){
     res.redirect("/");
   }*/
   const newItem =req.body.newItem;
+  const listName =req.body.list;
   const item=new Item({
     name : newItem
   });
-  item.save();
-  res.render("/");
+  if(listName==="Today"){
+    item.save();
+    res.render("/");
+  }else{
+    List.findOne({name : listName},function(err,foundList){
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect("/"+listName);
+    })
+  }
 });
 
 app.get("/:Others",function(req,res){
-  const listItem=req.params.Others;
+  const listItem=_.capitalize(req.params.Others);
   var f=false;
   /*
   List.find({},function(err,result){
